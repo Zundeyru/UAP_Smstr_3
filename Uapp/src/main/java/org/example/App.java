@@ -7,19 +7,17 @@ public class App
 {
     public static void main( String[] args )
     {
-        JFrame frame = new JFrame("Login");
-        frame.setSize(400,500);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLayout(new FlowLayout());
+        JFrame Dashboard = new JFrame("Menu Utama");
+        Dashboard.setSize(400,500);
+        Dashboard.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        Dashboard.setLayout(new FlowLayout());
+
+        JPanel buttonpanel = new JPanel(new FlowLayout());
 
         JTextField Teks = new JTextField(10);
 
 
-
-
-
-        frame.add(Teks);
-        frame.setVisible(true);
+        Dashboard.setVisible(true);
 
     }
 
