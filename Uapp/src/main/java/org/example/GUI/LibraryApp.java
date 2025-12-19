@@ -1,10 +1,10 @@
-package org.example;
+package org.example.GUI;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
-public class App 
+public class LibraryApp
 {
     public static void main( String[] args )
     {
