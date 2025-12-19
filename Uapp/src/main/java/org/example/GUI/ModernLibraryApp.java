@@ -7,7 +7,9 @@ import java.awt.*;
 import java.awt.event.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.text.NumberFormat;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -98,7 +100,7 @@ public class ModernLibraryApp extends JFrame {
         setSize(1150, 700);
         setLocationRelativeTo(null);
 
-        // Load data (try-catch sesuai spesifikasi)
+        // Load data
         try {
             store.load();
         } catch (Exception e) {
@@ -109,16 +111,14 @@ public class ModernLibraryApp extends JFrame {
 
         addWindowListener(new WindowAdapter() {
             @Override public void windowClosing(WindowEvent e) {
-                try {
-                    store.save();
-                } catch (Exception ex) {
+                try { store.save(); }
+                catch (Exception ex) {
                     JOptionPane.showMessageDialog(ModernLibraryApp.this, "Gagal simpan: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                 }
                 dispose();
             }
         });
 
-        // default page
         showPage(PAGE_DASH);
         refreshAll();
     }
@@ -188,10 +188,8 @@ public class ModernLibraryApp extends JFrame {
         JButton btnSave = new JButton("💾  Simpan");
         stylePrimaryButton(btnSave);
         btnSave.addActionListener(e -> {
-            try {
-                store.save();
-                setStatus("Data tersimpan.", false);
-            } catch (Exception ex) {
+            try { store.save(); setStatus("Data tersimpan.", false); }
+            catch (Exception ex) {
                 setStatus("Gagal simpan: " + ex.getMessage(), true);
                 JOptionPane.showMessageDialog(this, "Gagal simpan: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
@@ -200,11 +198,8 @@ public class ModernLibraryApp extends JFrame {
         JButton btnReload = new JButton("↻  Reload");
         styleGhostButton(btnReload);
         btnReload.addActionListener(e -> {
-            try {
-                store.load();
-                refreshAll();
-                setStatus("Data berhasil reload.", false);
-            } catch (Exception ex) {
+            try { store.load(); refreshAll(); setStatus("Data berhasil reload.", false); }
+            catch (Exception ex) {
                 setStatus("Gagal reload: " + ex.getMessage(), true);
                 JOptionPane.showMessageDialog(this, "Gagal reload: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
@@ -262,6 +257,11 @@ public class ModernLibraryApp extends JFrame {
         status.setForeground(error ? new Color(180, 40, 40) : Theme.MUTED);
     }
 
+    private static String formatRupiah(long amount) {
+        NumberFormat nf = NumberFormat.getInstance(new Locale("id", "ID"));
+        return "Rp " + nf.format(amount);
+    }
+
     // ===================== PAGE: DASHBOARD =====================
     private JPanel buildDashboardPage() {
         JPanel page = new JPanel(new BorderLayout());
@@ -275,7 +275,6 @@ public class ModernLibraryApp extends JFrame {
         JPanel cards = new JPanel(new GridLayout(1, 2, 12, 12));
         cards.setOpaque(false);
 
-        // ✅ Total Buku = total eksemplar (Σ totalBuku)
         JPanel c1 = cardPanel("Total Buku (Eksemplar)", "0");
         statTotalBuku = (JLabel) c1.getClientProperty("value");
 
@@ -287,14 +286,14 @@ public class ModernLibraryApp extends JFrame {
 
         JPanel tips = cardContainer();
         tips.setLayout(new BorderLayout(10, 10));
-        JLabel tipTitle = new JLabel("Catatan");
+        JLabel tipTitle = new JLabel("Catatan Tenggat & Denda");
         tipTitle.setFont(Theme.H2);
         tipTitle.setForeground(Theme.TEXT);
         JTextArea tip = new JTextArea(
-                "- List Buku: search + sorting + CRUD + Pinjam.\n" +
-                        "- Kembali: buka History → pilih transaksi BORROWED → Kembalikan.\n" +
-                        "- Data tersimpan permanen ke data/books.txt dan data/loans.txt.\n" +
-                        "- Total Buku pada dashboard = jumlah semua eksemplar (Σ Total Buku)."
+                "- Tenggat pengembalian: 7 hari dari tanggal pinjam.\n" +
+                        "- Jika lewat tenggat: denda Rp 2.000 per hari terlambat.\n" +
+                        "- Pinjam: dari List Buku → pilih buku → Pinjam.\n" +
+                        "- Kembali: dari History → pilih transaksi BORROWED → Kembalikan."
         );
         tip.setEditable(false);
         tip.setOpaque(false);
@@ -344,7 +343,7 @@ public class ModernLibraryApp extends JFrame {
         return p;
     }
 
-    // ===================== PAGE: BOOKS (List + Search + Sort + CRUD + Borrow) =====================
+    // ===================== PAGE: BOOKS =====================
     private JPanel buildBooksPage() {
         JPanel page = new JPanel(new BorderLayout(12, 12));
         page.setBackground(Theme.BG);
@@ -383,7 +382,6 @@ public class ModernLibraryApp extends JFrame {
         top.add(title, BorderLayout.NORTH);
         top.add(tools, BorderLayout.CENTER);
 
-        // ✅ header “Total Buku” (bukan “Stok Total”)
         booksModel = new DefaultTableModel(new Object[]{
                 "ID", "Judul", "Penulis", "Tahun", "Total Buku", "Tersedia"
         }, 0) {
@@ -398,7 +396,6 @@ public class ModernLibraryApp extends JFrame {
         styleTable(booksTable);
 
         booksSorter = new TableRowSorter<>(booksModel);
-        // Comparator angka untuk sorting benar
         booksSorter.setComparator(3, Comparator.comparingInt(o -> Integer.parseInt(o.toString())));
         booksSorter.setComparator(4, Comparator.comparingInt(o -> Integer.parseInt(o.toString())));
         booksSorter.setComparator(5, Comparator.comparingInt(o -> Integer.parseInt(o.toString())));
@@ -407,7 +404,6 @@ public class ModernLibraryApp extends JFrame {
         JScrollPane scroll = new JScrollPane(booksTable);
         scroll.setBorder(BorderFactory.createLineBorder(Theme.BORDER));
 
-        // actions
         JPanel bottom = cardContainer();
         bottom.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 0));
 
@@ -471,11 +467,8 @@ public class ModernLibraryApp extends JFrame {
 
     private void applyBooksFilter() {
         String key = tfSearchBooks.getText().trim();
-        if (key.isEmpty()) {
-            booksSorter.setRowFilter(null);
-        } else {
-            booksSorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(key)));
-        }
+        if (key.isEmpty()) booksSorter.setRowFilter(null);
+        else booksSorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(key)));
     }
 
     private String getSelectedBookId() {
@@ -534,17 +527,28 @@ public class ModernLibraryApp extends JFrame {
         if (borrower == null) return;
 
         try {
-            store.borrowBook(id, sanitize(borrower));
+            Loan created = store.borrowBook(id, sanitize(borrower));
             store.save();
             setStatus("Berhasil meminjam buku " + id + ".", false);
             refreshAll();
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Berhasil meminjam.\n" +
+                            "Tanggal Pinjam : " + created.borrowDate + "\n" +
+                            "Jatuh Tempo    : " + created.dueDate + " (7 hari)\n" +
+                            "Denda          : " + formatRupiah(LibraryStore.FINE_PER_DAY) + " / hari telat",
+                    "Info Pinjaman",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
         } catch (Exception ex) {
             setStatus("Gagal pinjam: " + ex.getMessage(), true);
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    // ===================== PAGE: FORM INPUT (Tambah/Edit) =====================
+    // ===================== PAGE: FORM INPUT =====================
     private JPanel buildFormPage() {
         JPanel page = new JPanel(new BorderLayout());
         page.setBackground(Theme.BG);
@@ -564,9 +568,7 @@ public class ModernLibraryApp extends JFrame {
         g.anchor = GridBagConstraints.WEST;
         g.fill = GridBagConstraints.HORIZONTAL;
 
-        tfId = new JTextField();
-        tfId.setEditable(false);
-
+        tfId = new JTextField(); tfId.setEditable(false);
         tfTitle = new JTextField();
         tfAuthor = new JTextField();
         tfYear = new JTextField();
@@ -577,7 +579,6 @@ public class ModernLibraryApp extends JFrame {
         addFormRow(form, g, r++, "Judul", tfTitle);
         addFormRow(form, g, r++, "Penulis", tfAuthor);
         addFormRow(form, g, r++, "Tahun", tfYear);
-        // ✅ label jadi Total Buku
         addFormRow(form, g, r++, "Total Buku", tfTotalBuku);
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
@@ -668,9 +669,7 @@ public class ModernLibraryApp extends JFrame {
             String author = sanitize(tfAuthor.getText());
 
             int year = parseInt(tfYear.getText(), "Tahun");
-            // ✅ field name untuk validasi jadi Total Buku
             int totalBuku = parseInt(tfTotalBuku.getText(), "Total Buku");
-
             if (totalBuku <= 0) throw new RuntimeException("Total Buku harus > 0.");
 
             if (!formEditMode) {
@@ -691,7 +690,7 @@ public class ModernLibraryApp extends JFrame {
         }
     }
 
-    // ===================== PAGE: HISTORY (Report + Return) =====================
+    // ===================== PAGE: HISTORY =====================
     private JPanel buildHistoryPage() {
         JPanel page = new JPanel(new BorderLayout(12, 12));
         page.setBackground(Theme.BG);
@@ -726,8 +725,10 @@ public class ModernLibraryApp extends JFrame {
         top.add(title, BorderLayout.NORTH);
         top.add(tools, BorderLayout.CENTER);
 
+        // ✅ tambah kolom jatuh tempo & denda
         loansModel = new DefaultTableModel(new Object[]{
-                "TRX ID", "Book ID", "Judul", "Peminjam", "Tgl Pinjam", "Tgl Kembali", "Status"
+                "TRX ID", "Book ID", "Judul", "Peminjam",
+                "Tgl Pinjam", "Jatuh Tempo", "Tgl Kembali", "Status", "Denda"
         }, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
@@ -760,10 +761,25 @@ public class ModernLibraryApp extends JFrame {
             return;
         }
         try {
-            store.returnBook(trxId);
+            Loan updated = store.returnBook(trxId);
             store.save();
             setStatus("Transaksi " + trxId + " berhasil dikembalikan.", false);
             refreshAll();
+
+            if (updated.fine > 0) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Pengembalian terlambat!\n" +
+                                "Jatuh Tempo : " + updated.dueDate + "\n" +
+                                "Kembali     : " + updated.returnDate + "\n" +
+                                "Denda       : " + formatRupiah(updated.fine),
+                        "Denda Keterlambatan",
+                        JOptionPane.WARNING_MESSAGE
+                );
+            } else {
+                JOptionPane.showMessageDialog(this, "Buku berhasil dikembalikan (tidak ada denda).", "Info", JOptionPane.INFORMATION_MESSAGE);
+            }
+
         } catch (Exception ex) {
             setStatus("Gagal kembalikan: " + ex.getMessage(), true);
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -791,7 +807,6 @@ public class ModernLibraryApp extends JFrame {
     }
 
     private void refreshDashboard() {
-        // ✅ Total Buku = Σ total buku (eksemplar)
         int totalCopies = store.books.stream().mapToInt(b -> b.stockTotal).sum();
         if (statTotalBuku != null) statTotalBuku.setText(String.valueOf(totalCopies));
 
@@ -802,7 +817,6 @@ public class ModernLibraryApp extends JFrame {
     private void refreshBooksTable() {
         if (booksModel == null) return;
 
-        // view list (sorted sesuai dropdown) menggunakan Comparator (sesuai spesifikasi)
         List<Book> view = store.getBooksSorted((String) cbSortBooks.getSelectedItem());
 
         booksModel.setRowCount(0);
@@ -819,9 +833,17 @@ public class ModernLibraryApp extends JFrame {
 
         for (Loan l : store.loans) {
             if (!"Semua".equals(filter) && !l.status.equals(filter)) continue;
+
             loansModel.addRow(new Object[]{
-                    l.trxId, l.bookId, l.bookTitle, l.borrower,
-                    l.borrowDate, (l.returnDate == null ? "-" : l.returnDate), l.status
+                    l.trxId,
+                    l.bookId,
+                    l.bookTitle,
+                    l.borrower,
+                    l.borrowDate,
+                    l.dueDate,
+                    (l.returnDate == null ? "-" : l.returnDate),
+                    l.status,
+                    formatRupiah(l.fine)
             });
         }
     }
@@ -857,17 +879,13 @@ public class ModernLibraryApp extends JFrame {
 
     // ===================== VALIDATION HELPERS =====================
     private int parseInt(String s, String field) {
-        try {
-            return Integer.parseInt(s.trim());
-        } catch (Exception e) {
-            throw new RuntimeException(field + " harus angka.");
-        }
+        try { return Integer.parseInt(s.trim()); }
+        catch (Exception e) { throw new RuntimeException(field + " harus angka."); }
     }
 
     private String sanitize(String s) {
         String t = (s == null) ? "" : s.trim();
         if (t.isEmpty()) throw new RuntimeException("Input tidak boleh kosong.");
-        // file format pakai '|', jadi cegah masalah
         return t.replace("|", "/");
     }
 
@@ -898,26 +916,34 @@ public class ModernLibraryApp extends JFrame {
     static class Loan {
         String trxId, bookId, bookTitle, borrower;
         LocalDate borrowDate;
-        LocalDate returnDate; // nullable
-        String status; // BORROWED / RETURNED
+        LocalDate dueDate;     // ✅ jatuh tempo
+        LocalDate returnDate;  // nullable
+        String status;         // BORROWED / RETURNED
+        long fine;             // ✅ denda
 
         Loan(String trxId, String bookId, String bookTitle, String borrower,
-             LocalDate borrowDate, LocalDate returnDate, String status) {
+             LocalDate borrowDate, LocalDate dueDate, LocalDate returnDate, String status, long fine) {
             this.trxId = trxId;
             this.bookId = bookId;
             this.bookTitle = bookTitle;
             this.borrower = borrower;
             this.borrowDate = borrowDate;
+            this.dueDate = dueDate;
             this.returnDate = returnDate;
             this.status = status;
+            this.fine = fine;
         }
     }
 
-    // ===================== STORE (CRUD + FILE HANDLING) =====================
+    // ===================== STORE =====================
     static class LibraryStore {
         final Path booksFile, loansFile;
         final List<Book> books = new ArrayList<>();
         final List<Loan> loans = new ArrayList<>();
+
+        // ✅ RULES
+        static final int LOAN_DAYS = 7;
+        static final long FINE_PER_DAY = 2000; // ubah kalau mau
 
         LibraryStore(Path booksFile, Path loansFile) {
             this.booksFile = booksFile;
@@ -950,14 +976,31 @@ public class ModernLibraryApp extends JFrame {
             if (Files.exists(loansFile)) {
                 for (String line : Files.readAllLines(loansFile, StandardCharsets.UTF_8)) {
                     if (line.isBlank()) continue;
+
+                    // Format baru:
+                    // trxId|bookId|bookTitle|borrower|borrowDate|dueDate|returnDate|status|fine
+                    // Format lama (kompatibel):
                     // trxId|bookId|bookTitle|borrower|borrowDate|returnDate|status
+
                     String[] p = line.split("\\|", -1);
-                    if (p.length < 7) continue;
 
-                    LocalDate borrowDate = LocalDate.parse(p[4]);
-                    LocalDate returnDate = p[5].isBlank() ? null : LocalDate.parse(p[5]);
+                    if (p.length >= 9) {
+                        LocalDate borrowDate = LocalDate.parse(p[4]);
+                        LocalDate dueDate = LocalDate.parse(p[5]);
+                        LocalDate returnDate = p[6].isBlank() ? null : LocalDate.parse(p[6]);
+                        long fine = p[8].isBlank() ? 0 : Long.parseLong(p[8]);
 
-                    loans.add(new Loan(p[0], p[1], p[2], p[3], borrowDate, returnDate, p[6]));
+                        loans.add(new Loan(p[0], p[1], p[2], p[3], borrowDate, dueDate, returnDate, p[7], fine));
+                    } else if (p.length >= 7) {
+                        // kompatibel file lama
+                        LocalDate borrowDate = LocalDate.parse(p[4]);
+                        LocalDate dueDate = borrowDate.plusDays(LOAN_DAYS);
+                        LocalDate returnDate = p[5].isBlank() ? null : LocalDate.parse(p[5]);
+                        String status = p[6];
+                        long fine = 0;
+
+                        loans.add(new Loan(p[0], p[1], p[2], p[3], borrowDate, dueDate, returnDate, status, fine));
+                    }
                 }
             }
         }
@@ -983,8 +1026,10 @@ public class ModernLibraryApp extends JFrame {
                 loanLines.add(String.join("|",
                         l.trxId, l.bookId, l.bookTitle, l.borrower,
                         l.borrowDate.toString(),
+                        l.dueDate.toString(),
                         l.returnDate == null ? "" : l.returnDate.toString(),
-                        l.status
+                        l.status,
+                        String.valueOf(l.fine)
                 ));
             }
             Files.write(loansFile, loanLines, StandardCharsets.UTF_8,
@@ -1022,18 +1067,24 @@ public class ModernLibraryApp extends JFrame {
             books.removeIf(b -> b.id.equalsIgnoreCase(id));
         }
 
-        // ==== BORROW / RETURN ====
-        void borrowBook(String bookId, String borrower) {
+        // ==== BORROW / RETURN (dengan tenggat + denda) ====
+        Loan borrowBook(String bookId, String borrower) {
             Book b = findBook(bookId);
             if (b == null) throw new RuntimeException("Buku tidak ditemukan.");
             if (b.stockAvail <= 0) throw new RuntimeException("Tersedia 0.");
 
             b.stockAvail--;
+
             String trxId = nextLoanId();
-            loans.add(new Loan(trxId, b.id, b.title, borrower, LocalDate.now(), null, "BORROWED"));
+            LocalDate borrowDate = LocalDate.now();
+            LocalDate dueDate = borrowDate.plusDays(LOAN_DAYS);
+
+            Loan loan = new Loan(trxId, b.id, b.title, borrower, borrowDate, dueDate, null, "BORROWED", 0);
+            loans.add(loan);
+            return loan;
         }
 
-        void returnBook(String trxId) {
+        Loan returnBook(String trxId) {
             Loan l = findLoan(trxId);
             if (l == null) throw new RuntimeException("Transaksi tidak ditemukan.");
             if ("RETURNED".equals(l.status)) throw new RuntimeException("Transaksi sudah RETURNED.");
@@ -1042,15 +1093,26 @@ public class ModernLibraryApp extends JFrame {
             if (b == null) throw new RuntimeException("Data buku transaksi tidak ditemukan.");
             if (b.stockAvail >= b.stockTotal) throw new RuntimeException("Tersedia sudah penuh (data tidak konsisten).");
 
+            LocalDate now = LocalDate.now();
             b.stockAvail++;
+
             l.status = "RETURNED";
-            l.returnDate = LocalDate.now();
+            l.returnDate = now;
+
+            // ✅ hitung denda jika lewat jatuh tempo
+            if (now.isAfter(l.dueDate)) {
+                long daysLate = ChronoUnit.DAYS.between(l.dueDate, now);
+                l.fine = daysLate * FINE_PER_DAY;
+            } else {
+                l.fine = 0;
+            }
+
+            return l;
         }
 
         // ==== SORT VIEW (Comparator) ====
         List<Book> getBooksSorted(String mode) {
             List<Book> copy = new ArrayList<>(books);
-
             if ("Judul (A-Z)".equals(mode)) {
                 copy.sort(Comparator.comparing(x -> x.title.toLowerCase()));
             } else if ("Tahun (Terbaru)".equals(mode)) {
