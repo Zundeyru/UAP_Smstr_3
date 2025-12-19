@@ -1,5 +1,3 @@
-package org.example.GUI;
-
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
@@ -10,8 +8,8 @@ import java.awt.event.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.*;
+import java.util.List;
 import java.util.regex.Pattern;
 
 public class ModernLibraryApp extends JFrame {
@@ -64,7 +62,8 @@ public class ModernLibraryApp extends JFrame {
     private final JLabel status = new JLabel("Siap.");
 
     // dashboard stats
-    private JLabel statBooks, statBorrowed;
+    private JLabel statTotalBuku;      // Σ total buku (eksemplar)
+    private JLabel statBorrowed;       // jumlah transaksi BORROWED
 
     // books page
     private DefaultTableModel booksModel;
@@ -78,7 +77,7 @@ public class ModernLibraryApp extends JFrame {
     private String editBookId = null;
 
     // form fields
-    private JTextField tfId, tfTitle, tfAuthor, tfYear, tfStockTotal;
+    private JTextField tfId, tfTitle, tfAuthor, tfYear, tfTotalBuku;
 
     // history page
     private DefaultTableModel loansModel;
@@ -276,8 +275,9 @@ public class ModernLibraryApp extends JFrame {
         JPanel cards = new JPanel(new GridLayout(1, 2, 12, 12));
         cards.setOpaque(false);
 
-        JPanel c1 = cardPanel("Total Buku", "0");
-        statBooks = (JLabel) c1.getClientProperty("value");
+        // ✅ Total Buku = total eksemplar (Σ totalBuku)
+        JPanel c1 = cardPanel("Total Buku (Eksemplar)", "0");
+        statTotalBuku = (JLabel) c1.getClientProperty("value");
 
         JPanel c2 = cardPanel("Sedang Dipinjam", "0");
         statBorrowed = (JLabel) c2.getClientProperty("value");
@@ -291,10 +291,10 @@ public class ModernLibraryApp extends JFrame {
         tipTitle.setFont(Theme.H2);
         tipTitle.setForeground(Theme.TEXT);
         JTextArea tip = new JTextArea(
-                "- List Buku: search + sorting + CRUD.\n" +
-                        "- Pinjam: pilih buku di List Buku → tombol Pinjam.\n" +
+                "- List Buku: search + sorting + CRUD + Pinjam.\n" +
                         "- Kembali: buka History → pilih transaksi BORROWED → Kembalikan.\n" +
-                        "- Data tersimpan permanen ke data/books.txt dan data/loans.txt."
+                        "- Data tersimpan permanen ke data/books.txt dan data/loans.txt.\n" +
+                        "- Total Buku pada dashboard = jumlah semua eksemplar (Σ Total Buku)."
         );
         tip.setEditable(false);
         tip.setOpaque(false);
@@ -367,7 +367,7 @@ public class ModernLibraryApp extends JFrame {
         ));
 
         cbSortBooks = new JComboBox<>(new String[]{
-                "Default", "Judul (A-Z)", "Tahun (Terbaru)", "Stok Tersedia (Banyak)"
+                "Default", "Judul (A-Z)", "Tahun (Terbaru)", "Tersedia (Banyak)"
         });
 
         JButton btnClear = new JButton("Clear");
@@ -383,9 +383,9 @@ public class ModernLibraryApp extends JFrame {
         top.add(title, BorderLayout.NORTH);
         top.add(tools, BorderLayout.CENTER);
 
-        // table
+        // ✅ header “Total Buku” (bukan “Stok Total”)
         booksModel = new DefaultTableModel(new Object[]{
-                "ID", "Judul", "Penulis", "Tahun", "Stok Total", "Stok Tersedia"
+                "ID", "Judul", "Penulis", "Tahun", "Total Buku", "Tersedia"
         }, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
@@ -398,7 +398,7 @@ public class ModernLibraryApp extends JFrame {
         styleTable(booksTable);
 
         booksSorter = new TableRowSorter<>(booksModel);
-        // Comparator kolom angka biar sorting benar
+        // Comparator angka untuk sorting benar
         booksSorter.setComparator(3, Comparator.comparingInt(o -> Integer.parseInt(o.toString())));
         booksSorter.setComparator(4, Comparator.comparingInt(o -> Integer.parseInt(o.toString())));
         booksSorter.setComparator(5, Comparator.comparingInt(o -> Integer.parseInt(o.toString())));
@@ -435,7 +435,6 @@ public class ModernLibraryApp extends JFrame {
         bottom.add(btnBorrow);
         bottom.add(btnRefresh);
 
-        // listeners search + sort
         tfSearchBooks.getDocument().addDocumentListener(new SimpleDocListener(this::applyBooksFilter));
         cbSortBooks.addActionListener(e -> refreshBooksTable());
 
@@ -475,7 +474,6 @@ public class ModernLibraryApp extends JFrame {
         if (key.isEmpty()) {
             booksSorter.setRowFilter(null);
         } else {
-            // aman: escape regex
             booksSorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(key)));
         }
     }
@@ -528,7 +526,7 @@ public class ModernLibraryApp extends JFrame {
             return;
         }
         if (b.stockAvail <= 0) {
-            JOptionPane.showMessageDialog(this, "Stok tersedia 0. Tidak bisa dipinjam.", "Info", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Tersedia 0. Tidak bisa dipinjam.", "Info", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
 
@@ -572,14 +570,15 @@ public class ModernLibraryApp extends JFrame {
         tfTitle = new JTextField();
         tfAuthor = new JTextField();
         tfYear = new JTextField();
-        tfStockTotal = new JTextField();
+        tfTotalBuku = new JTextField();
 
         int r = 0;
         addFormRow(form, g, r++, "ID (otomatis)", tfId);
         addFormRow(form, g, r++, "Judul", tfTitle);
         addFormRow(form, g, r++, "Penulis", tfAuthor);
         addFormRow(form, g, r++, "Tahun", tfYear);
-        addFormRow(form, g, r++, "Stok Total", tfStockTotal);
+        // ✅ label jadi Total Buku
+        addFormRow(form, g, r++, "Total Buku", tfTotalBuku);
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         actions.setOpaque(false);
@@ -647,7 +646,7 @@ public class ModernLibraryApp extends JFrame {
             tfTitle.setText("");
             tfAuthor.setText("");
             tfYear.setText("");
-            tfStockTotal.setText("");
+            tfTotalBuku.setText("");
         } else {
             Book b = store.findBook(editBookId);
             if (b == null) {
@@ -659,7 +658,7 @@ public class ModernLibraryApp extends JFrame {
             tfTitle.setText(b.title);
             tfAuthor.setText(b.author);
             tfYear.setText(String.valueOf(b.year));
-            tfStockTotal.setText(String.valueOf(b.stockTotal));
+            tfTotalBuku.setText(String.valueOf(b.stockTotal));
         }
     }
 
@@ -669,16 +668,17 @@ public class ModernLibraryApp extends JFrame {
             String author = sanitize(tfAuthor.getText());
 
             int year = parseInt(tfYear.getText(), "Tahun");
-            int stockTotal = parseInt(tfStockTotal.getText(), "Stok Total");
+            // ✅ field name untuk validasi jadi Total Buku
+            int totalBuku = parseInt(tfTotalBuku.getText(), "Total Buku");
 
-            if (stockTotal <= 0) throw new RuntimeException("Stok Total harus > 0.");
+            if (totalBuku <= 0) throw new RuntimeException("Total Buku harus > 0.");
 
             if (!formEditMode) {
-                store.addBook(title, author, year, stockTotal);
+                store.addBook(title, author, year, totalBuku);
                 store.save();
                 setStatus("Buku berhasil ditambahkan.", false);
             } else {
-                store.updateBook(editBookId, title, author, year, stockTotal);
+                store.updateBook(editBookId, title, author, year, totalBuku);
                 store.save();
                 setStatus("Buku berhasil diupdate.", false);
             }
@@ -791,7 +791,10 @@ public class ModernLibraryApp extends JFrame {
     }
 
     private void refreshDashboard() {
-        if (statBooks != null) statBooks.setText(String.valueOf(store.books.size()));
+        // ✅ Total Buku = Σ total buku (eksemplar)
+        int totalCopies = store.books.stream().mapToInt(b -> b.stockTotal).sum();
+        if (statTotalBuku != null) statTotalBuku.setText(String.valueOf(totalCopies));
+
         long borrowed = store.loans.stream().filter(l -> "BORROWED".equals(l.status)).count();
         if (statBorrowed != null) statBorrowed.setText(String.valueOf(borrowed));
     }
@@ -852,7 +855,7 @@ public class ModernLibraryApp extends JFrame {
         });
     }
 
-    // ===================== VALIDATION HELPERS (try-catch friendly) =====================
+    // ===================== VALIDATION HELPERS =====================
     private int parseInt(String s, String field) {
         try {
             return Integer.parseInt(s.trim());
@@ -989,25 +992,25 @@ public class ModernLibraryApp extends JFrame {
         }
 
         // ==== CRUD BOOK ====
-        void addBook(String title, String author, int year, int stockTotal) {
+        void addBook(String title, String author, int year, int totalBuku) {
             String id = nextBookIdPreview();
-            books.add(new Book(id, title, author, year, stockTotal, stockTotal));
+            books.add(new Book(id, title, author, year, totalBuku, totalBuku));
         }
 
-        void updateBook(String id, String title, String author, int year, int stockTotal) {
+        void updateBook(String id, String title, String author, int year, int totalBuku) {
             Book b = findBook(id);
             if (b == null) throw new RuntimeException("Buku tidak ditemukan: " + id);
 
             int borrowed = b.stockTotal - b.stockAvail;
-            if (stockTotal < borrowed) {
-                throw new RuntimeException("Stok total baru tidak boleh < jumlah dipinjam (" + borrowed + ").");
+            if (totalBuku < borrowed) {
+                throw new RuntimeException("Total Buku baru tidak boleh < jumlah dipinjam (" + borrowed + ").");
             }
 
             b.title = title;
             b.author = author;
             b.year = year;
-            b.stockTotal = stockTotal;
-            b.stockAvail = stockTotal - borrowed;
+            b.stockTotal = totalBuku;
+            b.stockAvail = totalBuku - borrowed;
         }
 
         void deleteBook(String id) {
@@ -1023,7 +1026,7 @@ public class ModernLibraryApp extends JFrame {
         void borrowBook(String bookId, String borrower) {
             Book b = findBook(bookId);
             if (b == null) throw new RuntimeException("Buku tidak ditemukan.");
-            if (b.stockAvail <= 0) throw new RuntimeException("Stok habis.");
+            if (b.stockAvail <= 0) throw new RuntimeException("Tersedia 0.");
 
             b.stockAvail--;
             String trxId = nextLoanId();
@@ -1037,14 +1040,14 @@ public class ModernLibraryApp extends JFrame {
 
             Book b = findBook(l.bookId);
             if (b == null) throw new RuntimeException("Data buku transaksi tidak ditemukan.");
-            if (b.stockAvail >= b.stockTotal) throw new RuntimeException("Stok sudah penuh (data tidak konsisten).");
+            if (b.stockAvail >= b.stockTotal) throw new RuntimeException("Tersedia sudah penuh (data tidak konsisten).");
 
             b.stockAvail++;
             l.status = "RETURNED";
             l.returnDate = LocalDate.now();
         }
 
-        // ==== SORT VIEW (pakai Comparator sesuai spesifikasi) ====
+        // ==== SORT VIEW (Comparator) ====
         List<Book> getBooksSorted(String mode) {
             List<Book> copy = new ArrayList<>(books);
 
@@ -1052,7 +1055,7 @@ public class ModernLibraryApp extends JFrame {
                 copy.sort(Comparator.comparing(x -> x.title.toLowerCase()));
             } else if ("Tahun (Terbaru)".equals(mode)) {
                 copy.sort((a, b) -> Integer.compare(b.year, a.year));
-            } else if ("Stok Tersedia (Banyak)".equals(mode)) {
+            } else if ("Tersedia (Banyak)".equals(mode)) {
                 copy.sort((a, b) -> Integer.compare(b.stockAvail, a.stockAvail));
             }
             return copy;
