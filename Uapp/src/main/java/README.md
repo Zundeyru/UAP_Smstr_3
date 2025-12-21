@@ -17,7 +17,7 @@ Aplikasi perpustakaan sederhana berbasis **Java Swing** yang memenuhi spesifikas
 2. Pastikan **Working directory**:
     - Run → Edit Configurations… → Working directory = `$PROJECT_DIR$`
 3. Jalankan class:
-    - `org.example.GUI.ModernLibraryApp`
+    - `GUI.ModernLibraryApp`
 
 ## Lokasi File Data
 Data tersimpan di folder project:
