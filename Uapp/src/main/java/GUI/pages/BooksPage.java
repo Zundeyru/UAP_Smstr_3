@@ -77,11 +77,11 @@ public class BooksPage extends JPanel {
         JPanel bottom = UiKit.card();
         bottom.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 0));
 
-        JButton btnAdd = new JButton("＋ Tambah");
-        JButton btnEdit = new JButton("✎ Edit");
-        JButton btnDelete = new JButton("🗑 Hapus");
-        JButton btnBorrow = new JButton("⇢ Pinjam");
-        JButton btnRefresh = new JButton("↻ Refresh");
+        JButton btnAdd = new JButton("Tambah");
+        JButton btnEdit = new JButton("Edit");
+        JButton btnDelete = new JButton("Hapus");
+        JButton btnBorrow = new JButton("Pinjam");
+        JButton btnRefresh = new JButton("Refresh");
 
         UiKit.primary(btnAdd);
         UiKit.ghost(btnEdit);

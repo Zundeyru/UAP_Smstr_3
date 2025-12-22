@@ -1,1 +1,2 @@
-B0001|Hobbit|JJTokien|1932|10|10
+B0001|Hobbit|Rifad|1932|10|10
+B0002|tips makan yang baik dan benar|iqbal|2007|4|4

@@ -41,8 +41,8 @@ public class HistoryPage extends JPanel {
         cbFilter = new JComboBox<>(new String[]{"Semua", Loan.BORROWED, Loan.RETURNED});
         cbFilter.addActionListener(e -> refresh());
 
-        JButton btnReturn = new JButton("↩ Kembalikan");
-        JButton btnRefresh = new JButton("↻ Refresh");
+        JButton btnReturn = new JButton("Kembalikan");
+        JButton btnRefresh = new JButton("Refresh");
         UiKit.primary(btnReturn);
         UiKit.ghost(btnRefresh);
 

@@ -104,7 +104,7 @@ public class ModernLibraryApp extends JFrame implements AppActions {
         side.setLayout(new BoxLayout(side, BoxLayout.Y_AXIS));
         side.setBorder(new EmptyBorder(16, 14, 16, 14));
 
-        JLabel app = new JLabel("📚  Perpustakaan");
+        JLabel app = new JLabel("Perpustakaan");
         app.setForeground(Color.WHITE);
         app.setFont(new Font("Segoe UI", Font.BOLD, 18));
 
@@ -117,10 +117,10 @@ public class ModernLibraryApp extends JFrame implements AppActions {
         side.add(sub);
         side.add(Box.createVerticalStrut(16));
 
-        btnDash = new NavButton("🏠  Dashboard");
-        btnBooks = new NavButton("📚  List Buku");
-        btnForm = new NavButton("📝  Input Buku");
-        btnHistory = new NavButton("🕘  History");
+        btnDash = new NavButton("Dashboard");
+        btnBooks = new NavButton("List Buku");
+        btnForm = new NavButton("Input Buku");
+        btnHistory = new NavButton("History");
 
         btnDash.addActionListener(e -> showDashboard());
         btnBooks.addActionListener(e -> showBooks());
@@ -137,7 +137,7 @@ public class ModernLibraryApp extends JFrame implements AppActions {
 
         side.add(Box.createVerticalGlue());
 
-        JButton btnSave = new JButton("💾  Simpan");
+        JButton btnSave = new JButton("Simpan");
         UiKit.primary(btnSave);
         btnSave.addActionListener(e -> {
             try {
@@ -149,7 +149,7 @@ public class ModernLibraryApp extends JFrame implements AppActions {
             }
         });
 
-        JButton btnReload = new JButton("↻  Reload");
+        JButton btnReload = new JButton("Reload");
         UiKit.ghost(btnReload);
         btnReload.addActionListener(e -> {
             try {

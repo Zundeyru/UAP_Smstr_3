@@ -58,9 +58,9 @@ public class BookFormPage extends JPanel {
         JPanel actionsBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         actionsBar.setOpaque(false);
 
-        JButton btnSave = new JButton("💾 Simpan");
+        JButton btnSave = new JButton("Simpan");
         JButton btnReset = new JButton("Reset");
-        JButton btnBack = new JButton("← Kembali");
+        JButton btnBack = new JButton("Kembali");
 
         UiKit.primary(btnSave);
         UiKit.ghost(btnReset);
